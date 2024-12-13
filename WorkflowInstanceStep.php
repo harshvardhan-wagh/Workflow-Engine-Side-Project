@@ -42,8 +42,28 @@ class WorkflowInstanceStep {
         $this->Instance_step_revoke_target = $Instance_step_revoke_target;
     }
 
-    public function addRevokeCondition($targetStepId) {
-        $this->revokeConditions[] = new RevokeCondition($targetStepId);
+    public function addRevokeCondition(RevokeCondition $condition) {
+        $this->revokeConditions[] = $condition;
+    }
+
+    public function findResumeStep() {
+        // echo "\nFind Resume Step ";
+        // print_r($this);
+        foreach ($this->revokeConditions as $condition) {
+            // echo"\nReturn : ";
+            // print_r($condition->getResumeStepId());
+            // echo "\nReturn complete";
+            return $condition->getResumeStepId();
+        }
+        return null;
+    }
+
+    public function moveToRevokeTarget() {
+        // If there's any condition set, just use the first one (simplified logic)
+        if (!empty($this->revokeConditions)) {
+            return $this->revokeConditions[0]->getTargetStepId();
+        }
+        return null;
     }
 
 
@@ -54,13 +74,7 @@ class WorkflowInstanceStep {
     public function moveToPreviousStep() {
         return $this->Instance_step_previous_step;
     }
-    public function moveToRevokeTarget() {
-        // If there's any condition set, just use the first one (simplified logic)
-        if (!empty($this->revokeConditions)) {
-            return $this->revokeConditions[0]->getTargetStepId();
-        }
-        return null;
-    }
+   
 
     public function getCurrentUserRole() {
         // You might need to fetch this from session or a user object associated with the step

@@ -50,16 +50,13 @@ class Step {
     public function setOnFailureStep(Step $step) {
         $this->step_on_failure = $step;
     }
-
-    // public function addRevokeCondition(RevokeCondition $condition) {
-    //     $this->revoke_conditions[$condition->getConditionType()] = $condition;
-    // }
-
     public function addRevokeCondition(RevokeCondition $condition) {
-        echo "revoke Condition";
-        print_r($condition);
+        // Optionally, add logic to validate or manage conditions before adding
         $this->revokeConditions[] = $condition;
+        // For debugging or confirmation, you might log or echo details about the added condition
+        // echo "Revoke Condition Added: Target Step ID - " . $condition->getTargetStepId() . ", Resume Step ID - " . $condition->getResumeStepId() . "\n";
     }
+    
     
 
     public function getRevokeTarget($conditionName) {

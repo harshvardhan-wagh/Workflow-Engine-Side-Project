@@ -34,10 +34,9 @@ class WorkflowInstance {
             $lastInstanceStep = null;
     
             while ($currentStep !== null) {
-                // Prompt the user for the owner name of each step
-                echo "Enter owner name for step '" . $currentStep->step_id_ . "' (Default: " . $currentStep->step_owner_role . "): ";
-                $input = trim(fgets(STDIN));  // Capture input from command line
-                $ownerName = !empty($input) ? $input : $currentStep->step_owner_role;  // Use input if provided, otherwise default
+                echo "\nEnter owner name for step '" . $currentStep->step_id_ . "' (Default: " . $currentStep->step_owner_role . "): ";
+                $input = trim(fgets(STDIN));
+                $ownerName = !empty($input) ? $input : $currentStep->step_owner_role;
     
                 $instanceStep = new WorkflowInstanceStep(
                     $this->workflow->workflow_id_,
@@ -46,17 +45,20 @@ class WorkflowInstance {
                     $this->WorkflowInstance_id_,
                     $ownerName,
                     $currentStep->step_description,
-                    $currentStep->step_on_success ? $currentStep->step_on_success->step_id_ : null,  // Pass step ID or step object
+                    $currentStep->step_on_success ? $currentStep->step_on_success->step_id_ : null,
                     $currentStep->step_on_failure ? $currentStep->step_on_failure->step_id_ : null
                 );
-
-                // Transfer revoke conditions
-                print_r($currentStep->revokeConditions);
-                if (isset($currentStep->revokeConditions) && is_array($currentStep->revokeConditions)) {
-                    foreach ($currentStep->revokeConditions as $condition) {
-                        $instanceStep->addRevokeCondition($condition);
-                    }
+    
+                foreach ($currentStep->revokeConditions as $condition) {
+                    $instanceStep->addRevokeCondition(new RevokeCondition($condition->getTargetStepId(), $condition->getResumeStepId()));
                 }
+                // Transfer revoke conditions
+                // if (isset($currentStep->revokeConditions) && is_array($currentStep->revokeConditions)) {
+                //     foreach ($currentStep->revokeConditions as $condition) {
+                //         $instanceStep->addRevokeCondition(clone $condition); // Use clone if necessary
+                //     }
+                // }
+
     
                 if ($lastInstanceStep === null) {
                     $this->WorkflowInstance_steps_head_node = $instanceStep;
@@ -73,6 +75,7 @@ class WorkflowInstance {
     }
     
     
+    
     public function acceptStep() {
         if ($this->stateManager->isHalted()) {
             echo "\nProcess is currently halted. Cannot accept the next step.";
@@ -80,15 +83,26 @@ class WorkflowInstance {
         }
     
         $currentStep = $this->getCurrentStep();
-        if ($currentStep && $currentStep->Instance_step_next_step) {
+        // echo"\nAccept Current step : ";
+       
+        if ($this->revoked_stage) {
+            // print_r($currentStep);
+            $resumeStep = $this->revoked_stage; // Make sure this returns the correct ID
+            $this->WorkflowInstance_stage = $this->findStageByStepId($resumeStep);
+            $this->revoked_stage = null; // Clear the revoked stage
+        } else if ($currentStep && $currentStep->Instance_step_next_step) {
             $this->WorkflowInstance_stage++; // Increment to move to the next step numerically
-            $this->stateManager->setCurrentState($this->WorkflowInstance_stage);
-            $this->auditTrail->logAction("Accepted step, moved to stage: " . $this->WorkflowInstance_stage);
-            echo "\nAccepted. Moved to stage: " . $this->WorkflowInstance_stage;
         } else {
             echo "\nError: No further steps to proceed.";
+            return;
         }
+    
+        $this->stateManager->setCurrentState($this->WorkflowInstance_stage);
+        $this->auditTrail->logAction("Accepted step, moved to stage: " . $this->WorkflowInstance_stage);
+        echo "\nAccepted. Moved to stage: " . $this->WorkflowInstance_stage;
     }
+    
+    
     
     
     public function rejectStep() {
@@ -106,8 +120,7 @@ class WorkflowInstance {
         // echo "evaluate revoke condition";
         // print_r($this->revokeConditions);
         foreach ($this->revokeConditions as $condition) {
-            echo"evaulting contition returning step id";
-            print_r($condition->evaluate($this));
+         
             if ($condition->evaluate($this)) { 
                 return $condition->getTargetStepId();
             }
@@ -116,18 +129,21 @@ class WorkflowInstance {
     }
     
     public function revokeStep() {
-        if ($this->stateManager->isHalted()) {
-            echo "\nProcess is currently halted. Cannot accept the next step.";
-            return;
-        }
         $currentStep = $this->getCurrentStep();
         if ($currentStep) {
             $targetStepId = $currentStep->moveToRevokeTarget();
-            if ($targetStepId !== null) {
+            $resumeStepId = $currentStep->findResumeStep();
+            // echo "\nSteps Id = ".$targetStepId." Resume = ".$resumeStepId;
+            if ($targetStepId && $resumeStepId) {
                 $this->WorkflowInstance_stage = $this->findStageByStepId($targetStepId);
-                echo "\nWorkflow instance revoked to stage: " . $this->WorkflowInstance_stage . ". Ready for resubmission.";
+                // echo " \nWorkflow instance revoked to stage: " . $this->WorkflowInstance_stage;
+                $this->auditTrail->logAction("Workflow instance revoked to stage: " . $this->WorkflowInstance_stage);
+                $this->stateManager->setCurrentState($this->WorkflowInstance_stage);
+                // echo "\nWorkflow instance revoked to stage: " . $this->WorkflowInstance_stage . ". Ready for resubmission at stage " . $resumeStepId;
+                $this->revoked_stage = $resumeStepId; // Store where to resume after revocation
+            
             } else {
-                echo "\nError: No revocation target defined for the current step.";
+                echo "\nError: No revocation or resume target defined for the current step.";
             }
         } else {
             echo "\nError: Current step is undefined, revocation cannot be processed.";
@@ -137,11 +153,13 @@ class WorkflowInstance {
     
     private function findStageByStepId($stepId) {
         $current = $this->WorkflowInstance_steps_head_node;
+        // echo "findStageByStepId input : ".$stepId." current obj : ".$current->Instance_step_id_;
         $stage = 1;
-        while ($current !== null) {
-            if ($current->Instance_step_id_ === $stepId) {
+        while ($current !== null) {  
+            if ($current->Instance_step_id_ === "wf_instance_001-".$stepId) {
                 return $stage;
             }
+            // echo " \ncurrent Step : ".$current->Instance_step_id_." Step to find: ".$stepId;
             $current = $current->Instance_step_next_step;
             $stage++;
         }
@@ -164,14 +182,6 @@ class WorkflowInstance {
         }
     }
 
-    // private function getCurrentStep() {
-    //     $current = $this->WorkflowInstance_steps_head_node;
-    //     for ($i = 1; $i < $this->WorkflowInstance_stage && $current; $i++) {
-            
-    //         $current = $current->Instance_step_next_step;
-    //     }
-    //     return $current;
-    // }
 
     private function getCurrentStep() {
         $current = $this->WorkflowInstance_steps_head_node;

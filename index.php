@@ -46,9 +46,10 @@ $systemAdminStep->setOnFailureStep($systemAdminStep);
 
 // 5. Define Revoke Conditions
 // Adding conditions directly inside the step setup
-$flaStep->addRevokeCondition(new RevokeCondition("go_back", "FLA", $employeeStep->step_id_));
-$mmgAdminStep->addRevokeCondition(new RevokeCondition("go_back", "MMG Admin", $flaStep->step_id_));
-$systemAdminStep->addRevokeCondition(new RevokeCondition("go_back", "System Admin", $mmgAdminStep->step_id_));
+$flaStep->addRevokeCondition(new RevokeCondition($employeeStep->step_id_, $flaStep->step_id_));
+$mmgAdminStep->addRevokeCondition(new RevokeCondition($employeeStep->step_id_, $mmgAdminStep->step_id_));
+$systemAdminStep->addRevokeCondition(new RevokeCondition($employeeStep->step_id_, $systemAdminStep->step_id_));
+
 
 // 6. Display the final Workflow structure
 $workflow->display();
