@@ -38,8 +38,5 @@ class RevokeCondition {
         return $this->resumeStepId;
     }
 
-    public function getTargetStepId() {
-        return $this->targetStepId;
-    }
     
 }
