@@ -3,14 +3,43 @@
 namespace workFlowManager;
 
 class RevokeCondition {
-    public $condition_type;
 
-    public function __construct($condition_type) {
-        $this->condition_type = $condition_type;
+    private $targetStepId;  // Target to revoke to
+    private $resumeStepId;
+
+    public function __construct( $targetStepId) {
+        $this->targetStepId = $targetStepId;
+        $this->resumeStepId = $resumeStepId;
     }
 
-    public function evaluate($context) {
-        // Logic to evaluate the condition based on the context.
-        return $context === $this->condition_type;
+    public function evaluate($instanceStep) {
+        echo "Evaluating Revoke Condition\n";
+        echo "Instance Step Description: " . $instanceStep->Instance_step_description . "\n";
+        echo "Condition Value: " . $this->conditionValue . "\n";
+    
+        switch ($this->conditionType) {
+            case 'go_back':
+                // Assuming the condition to go back is based on a matching description
+                return trim(strtolower($instanceStep->Instance_step_description)) === trim(strtolower($this->conditionValue));
+            
+            // You can add more cases if there are other types of conditions to evaluate
+            default:
+                return false;
+        }
     }
+    
+    
+
+    public function getTargetStepId() {
+        return $this->targetStepId;
+    }
+
+    public function getResumeStepId() {
+        return $this->resumeStepId;
+    }
+
+    public function getTargetStepId() {
+        return $this->targetStepId;
+    }
+    
 }

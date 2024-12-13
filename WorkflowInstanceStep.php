@@ -14,7 +14,7 @@ class WorkflowInstanceStep {
     public $Instance_step_next_step = null;
     public $Instance_step_previous_step = null;
     public $Instance_step_revoke_target = null;  // Optional: to handle custom revoke targets
-    public $revokeConditions = []; 
+    public $revokeConditions = []; // Array of RevokeCondition objects
 
     public function __construct(
         $workflow_id_,
@@ -27,7 +27,7 @@ class WorkflowInstanceStep {
         $Instance_step_on_failure = null,
         $Instance_step_next_step = null,
         $Instance_step_previous_step = null,
-        $Instance_step_revoke_target = null  // Initial null, can be set based on conditions
+        $Instance_step_revoke_target = null
     ) {
         $this->workflow_id_ = $workflow_id_;
         $this->workflow_step_id_ = $workflow_step_id_;
@@ -42,29 +42,34 @@ class WorkflowInstanceStep {
         $this->Instance_step_revoke_target = $Instance_step_revoke_target;
     }
 
+    public function addRevokeCondition($targetStepId) {
+        $this->revokeConditions[] = new RevokeCondition($targetStepId);
+    }
+
+
     public function moveToNextStep() {
-        if ($this->Instance_step_next_step !== null) {
-            return $this->Instance_step_next_step;
-        }
-        return null;
+        return $this->Instance_step_next_step;
     }
 
     public function moveToPreviousStep() {
-        if ($this->Instance_step_previous_step !== null) {
-            return $this->Instance_step_previous_step;
-        }
-        return null;
+        return $this->Instance_step_previous_step;
     }
-
     public function moveToRevokeTarget() {
-        if ($this->Instance_step_revoke_target !== null) {
-            return $this->Instance_step_revoke_target;
+        // If there's any condition set, just use the first one (simplified logic)
+        if (!empty($this->revokeConditions)) {
+            return $this->revokeConditions[0]->getTargetStepId();
         }
         return null;
     }
 
-    public function addRevokeCondition($revokeCondition) {
-        $this->revokeConditions[] = $revokeCondition;
+    public function getCurrentUserRole() {
+        // You might need to fetch this from session or a user object associated with the step
+        return $this->currentUserRole;  // Assuming this property is set somewhere
+    }
+
+    public function getLastAction() {
+        // This method should return the last action performed; perhaps tracked via state management
+        return $this->lastAction;  // Assuming this property is tracked
     }
 }
 
