@@ -55,7 +55,7 @@ $systemAdminStep->addRevokeCondition(new RevokeCondition($employeeStep->step_id_
 $workflow->display();
 
 // Create a new instance of the workflow
-$workflowInstance = new WorkflowInstance($workflow, "Asset Transfer Process Instance", "wf_instance_001");
+$workflowInstance = new WorkflowInstance($workflow, "Asset Transfer Process Instance", "wf_instance_001","345412");
 
 $workflowInstance->displayAllSteps();
 

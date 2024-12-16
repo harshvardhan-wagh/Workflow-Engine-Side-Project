@@ -17,12 +17,14 @@ class WorkflowInstance {
     public $revoked_stage = null; 
     private $auditTrail;
     private $stateManager; // State manager instance
+    public $userId;
 
-    public function __construct($workflow, $WorkflowInstance_name, $WorkflowInstance_id_, $is_old_object = false) {
+    public function __construct($workflow, $WorkflowInstance_name, $WorkflowInstance_id_, $userId ,$is_old_object = false) {
         $this->workflow = $workflow;
         $this->WorkflowInstance_id_ = $WorkflowInstance_id_;
         $this->WorkflowInstance_name = $WorkflowInstance_name;
         $this->WorkflowInstance_description = $workflow->workflow_description;
+        $this->userId = $userId;
         $this->auditTrail = new AuditTrail();
         $this->stateManager = new StateManager(); // Initialize state manager
         $this->initializeWorkflowInstanceSteps($is_old_object);
